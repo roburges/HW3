@@ -152,48 +152,54 @@ def internal_server_error(e):
 @app.route('/', methods=['GET', 'POST'])
 def index():
     # Initialize the form
-    form = TweetForm()
+	form = TweetForm()
     # Get the number of Tweets
-    num_tweets = Tweet.query.count()
-    username = form.username.data
-    display_name = form.display_name.data
-    text = form.text.data
+	num_tweets = Tweet.query.count()
+	username = form.username.data
+	display_name = form.display_name.data
+	text = form.text.data
 
-# If the form was posted to this route,
-    ## Get the data from the form
-    if request.method == 'POST' and form.validate_on_submit():
-    ## Find out if there's already a user with the entered username
-    ## If there is, save it in a variable: user
-    ## Or if there is not, then create one and add it to the database
-        user = User.query.filter_by(username = username).first()
-        if user:
-            print("Username already exists")
-        if not user:
-            user = User(username = username, display_name = display_name)
-            db.session.add(user)
-            db.session.commit()
+	# If the form was posted to this route,
+	## Get the data from the form
+	if request.method == 'POST' and form.validate_on_submit():
+	    ## Find out if there's already a user with the entered username
+	    ## If there is, save it in a variable: user
+	    ## Or if there is not, then create one and add it to the database
+		user = User.query.filter_by(username = username).first()
+		if user:
+			user=user
+			redirect(url_for('index'))
+			flash("Username already exists")
+			render_template('all_tweets.html')
+			##user = User(username = username, display_name = display_name)
+		if not user:
+			user = User(username = username, display_name = display_name)
+			db.session.add(user)
+			db.session.commit()
  ## If there already exists a tweet in the database with this text and this user id (the id of that user variable above...) ## Then flash a message about the tweet already existing
     ## And redirect to the list of all tweets
-        tweet = Tweet.query.filter_by(text = text, user_id = user.id).first()
-        if tweet:
-            flash('This tweet and user combination exists already')
-            redirect(url_for('see_all_tweets'))
-    ## Assuming we got past that redirect,
-    ## Create a new tweet object with the text and user id
-    ## And add it to the database
-    ## Flash a message about a tweet being successfully added
-    ## Redirect to the index page
-        else:
-            tweet = Tweet(text = text, user_id = user.id)
-            db.session.add(tweet)
-            db.session.commit()
-            flash('Tweet was added')
-            redirect(url_for('index'))
+		tweet = Tweet.query.filter_by(text = text, user_id = user.id).first()
+		if tweet and user.id:
+			tweet=tweet
+			redirect(url_for('index'))
+			flash('This tweet and user combination exists already')
+		    ## Assuming we got past that redirect,
+	    ## Create a new tweet object with the text and user id
+	    ## And add it to the database
+	    ## Flash a message about a tweet being successfully added
+	    ## Redirect to the index page
+		else:
+			tweet = Tweet(text = text, user_id = user.id)
+			db.session.add(tweet)
+			db.session.commit()
+			flash('Tweet was added')
+			redirect(url_for('index'))
+
 # PROVIDED: If the form did NOT validate / was not submitted
-    errors = [v for v in form.errors.values()]
-    if len(errors) > 0:
-        flash("!!!! ERRORS IN FORM SUBMISSION - " + str(errors))
-    return render_template('index.html', form = form, num_tweets = num_tweets, text = text, username = username, display_name = display_name) # TODO 364: Add more arguments to the render_template invocation to send data to index.html
+	errors = [v for v in form.errors.values()]
+	if len(errors) > 0:
+		flash("!!!! ERRORS IN FORM SUBMISSION - " + str(errors))
+	return render_template('index.html', form = form, num_tweets = num_tweets, text = text, username = username, display_name = display_name) # TODO 364: Add more arguments to the render_template invocation to send data to index.html
 
 @app.route('/all_tweets')
 def see_all_tweets():
@@ -235,7 +241,7 @@ def longest_tweet():
     usertweets = User.query.all()
     tweets = []
     for tweet in usertweets:
-        usertweets.append((len(tweet.tweets[0].text.replace(' ', '')), tweet.tweets[0].text, tweet.username, tweet.display_name))
+        tweets.append((len(tweet.tweets[0].text.replace(' ', '')), tweet.tweets[0].text, tweet.username, tweet.display_name))
 
     tweets.sort(key=lambda x : (-x[0], x[1]))
     return render_template('longest_tweet.html', longest_tweet = tweets[0][1], username = tweets[0][2], display_name = tweets[0][3])  ##https://stackoverflow.com/questions/4010322/sort-a-list-of-class-instances-python
